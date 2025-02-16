@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "release": "yarn build && direnv exec . npm publish --access public",
+    "release": "yarn build && npm publish --access public",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
