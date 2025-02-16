@@ -1,0 +1,18 @@
+{
+  "name": "@smbcheeky/error-object",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "release": "yarn build && direnv exec . npm publish --access public",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^6.5.0",
+    "typescript": "^4.9.4"
+  },
+  "license": "MIT",
+  "private": false
+}

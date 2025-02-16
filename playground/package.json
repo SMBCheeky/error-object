@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "watch": "NODE_NO_WARNINGS=1 nodemon --quiet --watch ../dist --ext ts --watch index.ts --exec npm run start",
+    "build": "cd .. && npm run build && cd playground && ./npm-link.sh && npm run watch",
+    "start": "NODE_NO_WARNINGS=1 node --trace-warnings --loader ts-node/esm index.ts"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
+  "type": "module"
+}
