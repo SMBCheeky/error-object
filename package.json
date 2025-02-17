@@ -1,11 +1,13 @@
 {
   "name": "@smbcheeky/error-object",
-  "version": "1.0.0",
+  "description": "Create errors that can be both thrown and returned. Make error handling easier for both JavaScript and TypeScript.",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
+    "pack": "yarn build && npm pack",
     "release": "yarn build && npm publish --access public",
     "lint": "tsc --noEmit"
   },
@@ -14,5 +16,36 @@
     "typescript": "^4.9.4"
   },
   "license": "MIT",
-  "private": false
+  "private": false,
+  "homepage": "https://www.npmjs.com/package/@smbcheeky/error-object",
+  "author": {
+    "name": "Stefan B.",
+    "email": "stefan@smbcheeky.com",
+    "url": "https://www.npmjs.com/~stefan-at-smb"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SMBCheeky/error-object.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SMBCheeky/error-object/issues"
+  },
+  "keywords": [
+    "exceptions",
+    "errors",
+    "handling",
+    "try",
+    "throw",
+    "catch",
+    "caught",
+    "instanceof",
+    "debug"
+  ],
+  "files": [
+    "dist/",
+    "src/",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ]
 }
