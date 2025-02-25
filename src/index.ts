@@ -287,20 +287,20 @@ export class ErrorObject extends Error {
     );
   }
 
-  log<V extends string>(logTag: V & (string extends V ? never : V)) {
-    return this._log<V>(logTag, 'log');
+  log(logTag: string) {
+    return this._log(logTag, 'log');
   }
 
-  debugLog<V extends string>(logTag: V & (string extends V ? never : V)) {
-    return this._log<V>(logTag, 'debug');
+  debugLog(logTag: string) {
+    return this._log(logTag, 'debug');
   }
 
-  verboseLog<V extends string>(logTag: V & (string extends V ? never : V)) {
-    return this._log<V>(logTag, 'verbose');
+  verboseLog(logTag: string) {
+    return this._log(logTag, 'verbose');
   }
 
-  private _log<V extends string>(
-    logTag: V & (string extends V ? never : V),
+  private _log(
+    logTag: string,
     logLevel: 'log' | 'debug' | 'verbose',
   ) {
     const logForThis =
