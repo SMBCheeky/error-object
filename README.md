@@ -85,9 +85,9 @@ Let's break it down:
         - for all fields other than `numberCode`, if a value is found and is a string, it is saved as is, but if it is
           an array or an object it will be JSON.stringify'ed and saved as a string
         - for `numberCode`, if a value is found and it is a number different than `NaN`, it is saved
-        - the `transformCode`, `transformNumberCode`, `transformMessage`, `transformDetails` and `transformDomain`
-          functions are used to transform the found values to the error object
-        - the transform functions have access to each respective value, all other values, and the initial object (object
+        - the `transform`
+          function is used to transform the found values by the parsing process into the error object
+        - the transform function has access to all pre-transformation values and also the initial object (object
           inside the errors array or initial object)
         - everything gets processed into a list of `ErrorSummary | ErrorObjectErrorResult` array
         - it contains everything, from error strings custom-made to be as distinct and easy to read as possible, to self
@@ -177,20 +177,24 @@ ErrorObject.from(JSON.parse(response?.body), {
  * the correct message and domain.
  */
 const AuthMessageResolver = (
-  message: string | undefined,
-  beforeTransform: ErrorObjectBeforeTransformState): string => {
+  beforeTransform: ErrorObjectTransformState): ErrorObjectTransformState => {
   // Quick tip: Make all messages slightly different, to make it easy
   // to find the right one when debugging, even in production
+  let message: string | undefined;
   switch (beforeTransform.code) {
     case 'generic':
-      return 'Something went wrong';
+      message = 'Something went wrong';
+      break;
     case 'generic-again':
-      return 'Something went wrong. Please try again.';
+      message = 'Something went wrong. Please try again.';
+      break;
     case 'generic-network':
-      return 'Something went wrong. Please check your internet connection and try again.';
+      message = 'Something went wrong. Please check your internet connection and try again.';
+      break;
     default:
-      return 'Something went wrong.';
+      message = 'Something went wrong.';
   }
+  return { ...beforeTransform, message };
 };
 
 const createAuthError2 = (code: string) => {
@@ -200,7 +204,7 @@ const createAuthError2 = (code: string) => {
       domain: 'auth',
     },
     {
-      transformMessage: AuthMessageResolver,
+      transform: AuthMessageResolver,
     },
   );
 };
@@ -218,3 +222,27 @@ createAuthError2('invalid-code')?.error?.log('4');
 // [3] Something went wrong. Please check your internet connection and try again. [auth/generic-network]
 // [4] Something went wrong. [auth/invalid-code]
 ```
+
+## FAQ
+
+### How do I use paths? Are they absolute?
+
+To support inputs containing arrays of errors as well as single errors, all paths are treated initially as absolute (
+from the
+input root), but if an array of errors is detected, it will consider each element found the new root input object. Devs
+have a
+choice: set the "pathToErrors" option as empty, and then map only the first error (highly not recommended), or adjust
+the paths to be relative to the objects inside the detected errors array.
+
+### How do I use paths? I sometimes get the error code in an `error` object, and sometimes in the root object...
+
+You can use `pathToCode: addPrefixPathVariants('error', ['code']),` or `pathToCode: ['error.code']`
+
+### How do I use paths? Can I get the raw contents of a path and process it later?
+
+Yes, you can. You can use paths like `error.details.0` to get a raw value, and then process it later using the
+`transform` option.
+If the value is not a string, it will be converted to a string using `JSON.stringify` to ensure everything works as
+intended.
+Remember, for an ErrorObject to be created, it needs at least a code and a message, and both are required to be string
+values.

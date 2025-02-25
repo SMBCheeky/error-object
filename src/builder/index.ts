@@ -1,6 +1,5 @@
-import { ErrorObject } from '../index';
+import { ErrorObject, ErrorObjectTransformState } from '../index';
 import { DEFAULT_BUILD_OPTIONS, ErrorObjectBuildOptions, ErrorObjectErrorResult, ErrorSummary } from '../utils';
-import { __transformAllValues } from './transformers';
 import { __processAllValuesFromPaths } from './valuesFromPaths';
 
 export const buildSummariesFromObject = (
@@ -121,77 +120,92 @@ export const buildSummaryFromObject = (
       domainPath,
     } = valuesResult;
 
-    const transformedResult = __transformAllValues({
-      codeBeforeTransform,
-      numberCodeBeforeTransform,
-      messageBeforeTransform,
-      detailsBeforeTransform,
-      domainBeforeTransform,
-      options,
-      objectToParse,
-    });
-    if (typeof transformedResult === 'string') {
-      return transformedResult;
+    if ('transform' in options && typeof options.transform !== 'function') {
+      return 'transformIsNotAFunction';
     }
-    const { code, numberCode, message, details, domain } = transformedResult;
 
-    const tellDevsAboutTheirPaths =
-      'To support inputs containing arrays of errors as well as single errors,' +
-      ' all paths are treated as absolute (from the input root), but if an array of errors' +
-      ' is detected, it will consider each element the new root input object. Devs have a' +
-      ' choice: set the "pathToErrors" option as empty, and then map only the first error' +
-      ' (highly not recommended), or adjust the paths to be relative to the objects inside' +
-      ' the detected errors array.';
+    const beforeTransform: ErrorObjectTransformState = {
+      code: codeBeforeTransform,
+      numberCode: numberCodeBeforeTransform,
+      message: messageBeforeTransform,
+      details: detailsBeforeTransform,
+      domain: domainBeforeTransform,
+    };
+
+    const values = options.transform ? options.transform(beforeTransform, objectToParse) : beforeTransform;
+    if (values === undefined || values === null || typeof values !== 'object') {
+      return 'transformResultIsNotAValidObject';
+    }
+    if (values.code && typeof values.code !== 'string') {
+      return 'transformCodeResultIsNotString';
+    }
+
+    if (
+      values.numberCode !== undefined &&
+      values.numberCode !== null &&
+      typeof values.numberCode !== 'number'
+    ) {
+      return 'transformNumberCodeResultIsNotNumber';
+    }
+    if (values.numberCode !== undefined && values.numberCode !== null && isNaN(values.numberCode)) {
+      return 'transformNumberCodeResultIsNaN';
+    }
+    if (values.message && typeof values.message !== 'string') {
+      return 'transformMessageResultIsNotString';
+    }
+    if (values.details && typeof values.details !== 'string') {
+      return 'transformDetailsResultIsNotString';
+    }
+    if (values.domain && typeof values.domain !== 'string') {
+      return 'transformDomainResultIsNotString';
+    }
 
     return {
       didDetectErrorsArray: didDetectErrorsArray ? true : undefined,
-      errorsArrayNotice: didDetectErrorsArray
-                         ? tellDevsAboutTheirPaths
-                         : undefined,
       input: objectToParse,
       path: errorsPath,
       value: {
         code:
-          codePath || codeBeforeTransform || code
+          codePath || codeBeforeTransform || values.code
           ? {
               path: codePath,
               beforeTransform: codeBeforeTransform,
-              value: code,
+              value: values.code,
             }
           : undefined,
         numberCode:
           numberCodePath ||
           (numberCodeBeforeTransform !== undefined &&
            numberCodeBeforeTransform !== null) ||
-          (numberCode !== undefined && numberCode !== null)
+          (values.numberCode !== undefined && values.numberCode !== null)
           ? {
               path: numberCodePath,
               beforeTransform: numberCodeBeforeTransform,
-              value: numberCode,
+              value: values.numberCode,
             }
           : undefined,
         message:
-          messagePath || messageBeforeTransform || message
+          messagePath || messageBeforeTransform || values.message
           ? {
               path: messagePath,
               beforeTransform: messageBeforeTransform,
-              value: message,
+              value: values.message,
             }
           : undefined,
         details:
-          detailsPath || detailsBeforeTransform || details
+          detailsPath || detailsBeforeTransform || values.details
           ? {
               path: detailsPath,
               beforeTransform: detailsBeforeTransform,
-              value: details,
+              value: values.details,
             }
           : undefined,
         domain:
-          domainPath || domainBeforeTransform || domain
+          domainPath || domainBeforeTransform || values.domain
           ? {
               path: domainPath,
               beforeTransform: domainBeforeTransform,
-              value: domain,
+              value: values.domain,
             }
           : undefined,
       },
