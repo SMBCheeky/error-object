@@ -1,7 +1,7 @@
 {
   "name": "@smbcheeky/error-object",
   "description": "Create errors that can be both thrown and returned. Make error handling easier for both JavaScript and TypeScript.",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

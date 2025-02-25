@@ -1,4 +1,4 @@
-import { addPrefixPathVariants, ErrorObject, ErrorObjectBeforeTransformState } from '@smbcheeky/error-object';
+import { addPrefixPathVariants, ErrorObject, ErrorObjectTransformState } from '@smbcheeky/error-object';
 
 /*
  *
@@ -9,6 +9,8 @@ import { addPrefixPathVariants, ErrorObject, ErrorObjectBeforeTransformState } f
  * - wrap everything with and `ErrorObject.from()` call, and don't forget to use both `error` and `force` properties.
  * - use `.log(<TAG>)` and `.debugLog(<TAG>)` to log the error object inline and make it traceable with a unique tag.
  * - use checks like .isGeneric() and .isFallback() to check if the error object is a generic or fallback error.
+ *
+ * P.S. The examples below are written in with a naive approach, use them as reference and inspiration for your own solutions.
  *
  * Have a bit of fun, as error handling is not hard... just cheeky.
  * SMBCheeky
@@ -43,17 +45,12 @@ const runStoryExample = () => {
   //    what it returns. This will help you understand if you need to make any adjustments.
   //      - It seems there is no log "[LOG]" in the console, so we continue with the next step.
   //
-  // 2. Continue with `ErrorObject.from(object)?.force?.verboseLog` and see what it returns.
+  // 2. Continue with `ErrorObject.from(object)?.force?.verboseLog('LOG')` and see what it returns.
   //  "processingErrors": [
   //     {
   //       "errorCode": "unknownCodeOrMessage",
   //       "summary": {
   //         "didDetectErrorsArray": true,
-  //         "errorsArrayNotice": "To support inputs containing arrays of errors as well as single errors,
-  //         all paths are treated as absolute (from the input root), but if an errors array is detected,
-  //         it will treat each element as the new input. Devs have a choice: set the \"pathToErrors\"
-  //         option as undefined or empty, and then you can map the one single error or adjust the paths
-  //         to be relative to the detected errors array.",
   //         "input": {
   //           "message": "Cannot query field \"username\" on type \"User\"",
   //           "locations": [
@@ -80,13 +77,13 @@ const runStoryExample = () => {
   //
   // 3. Observe the processingErrors object, returned by .debugLog(). You can see that the error object
   //    was able to find the error message, but couldn't find the code. But something seems weird.
-  //    I can see `didDetectErrorsArray` is true, a `errorsArrayNotice` value and a `errorCode`
+  //    I can see `didDetectErrorsArray` is true and a `errorCode`
   //    of type `ErrorObjectErrorResult`. The error code is a string that describes the error that
   //    occurred during processing. In this case, it's `unknownCodeOrMessage`.
-  //      - Reading the `errorsArrayNotice` value and looking at the object, we can see that our error is
+  //      - Looking at the object, we can see that our error is
   //      actually an array of errors of length 1 - meaning we could have multiple errors in the array.
   //
-  // 4. Ok, so like the notice says, I have a choice to make... set pathToErrors to empty, and then
+  // 4. Ok, so I have a choice to make... set pathToErrors to empty, and then
   //    map only the first error... Or, adjust the paths to be relative to the objects inside the
   //    detected errors array. Let's try and respect the library's design principles and recommendation
   //    and go with the second option :)
@@ -147,7 +144,7 @@ const runStoryExample = () => {
   //  }
   //
   // 12. Stand-up and marvel at the code that should've taken 5 minutes at most to complete and instead took 2 days :/
-  //     - I'm pretty sure next time we'll do better ;)
+  //     - I'm pretty sure next time we'll both do better ;)
 
   ErrorObject.from(
     {
@@ -250,11 +247,13 @@ const runExample1 = () => {
   ErrorObject.from(
     { code: 'generic-again' },
     {
-      transformMessage: (message, beforeTransform): string =>
-        beforeTransform.code
-        ? ErrorObjectMessage1?.[beforeTransform.code as ErrorObjectCode1] ??
-          'Something went wrong.'
-        : 'Invalid error found.',
+      transform: (beforeTransform) =>
+        ({
+          ...beforeTransform, message: beforeTransform.code
+                                       ? ErrorObjectMessage1?.[beforeTransform.code as ErrorObjectCode1] ??
+                                         'Something went wrong.'
+                                       : 'Invalid error found.',
+        }),
     },
   )
   ?.error?.setDomain?.('update')
@@ -280,12 +279,9 @@ const runExample1 = () => {
   //         "beforeTransform": "generic-again",
   //         "value": "generic-again"
   //       },
-  //       "numberCode": {},
   //       "message": {
   //         "value": "Something went wrong. Please try again."
   //       },
-  //       "details": {},
-  //       "domain": {}
   //     }
   //   },
   //   "raw": {
@@ -306,20 +302,24 @@ const runExample2 = () => {
   // You could have a file called `errors.ts` in each of your modules/folders and define a function
   // like `createAuthError2()` that returns an error object with the correct message and domain.
   const AuthMessageResolver = (
-    message: string | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
-  ): string => {
+    beforeTransform: ErrorObjectTransformState,
+  ): ErrorObjectTransformState => {
     // Quick tip: Make all messages slightly different to make it easier to find the right one when debugging
+    let message: string | undefined;
     switch (beforeTransform.code) {
       case 'generic':
-        return 'Something went wrong';
+        message = 'Something went wrong';
+        break;
       case 'generic-again':
-        return 'Something went wrong. Please try again.';
+        message = 'Something went wrong. Please try again.';
+        break;
       case 'generic-network':
-        return 'Something went wrong. Please check your internet connection and try again.';
+        message = 'Something went wrong. Please check your internet connection and try again.';
+        break;
       default:
-        return 'Something went wrong.';
+        message = 'Something went wrong.';
     }
+    return { ...beforeTransform, message };
   };
 
   const createAuthError2 = (code: string) => {
@@ -329,7 +329,7 @@ const runExample2 = () => {
         domain: 'auth',
       },
       {
-        transformMessage: AuthMessageResolver,
+        transform: AuthMessageResolver,
       },
     );
   };
@@ -407,14 +407,11 @@ const runExample3 = () => {
   //         "beforeTransform": "battery-low",
   //         "value": "battery-low"
   //       },
-  //       "numberCode": {},
   //       "message": {
   //         "path": "error.message",
   //         "beforeTransform": "Please make sure your battery charge is above 75% before proceeding.",
   //         "value": "Please make sure your battery charge is above 75% before proceeding."
   //       },
-  //       "details": {},
-  //       "domain": {}
   //     }
   //   },
   //   "raw": {
@@ -442,12 +439,16 @@ const runExample4 = () => {
       },
     },
     {
-      transformMessage: (message, beforeTransform) => {
+      transform: (beforeTransform) => {
+        let message: string | undefined;
         switch (beforeTransform.code) {
           case 'battery-low':
-            return 'Please make sure your battery charge is above 75% before proceeding.';
+            message = 'Please make sure your battery charge is above 75% before proceeding.';
         }
-        return 'Invalid status code. Please make sure your device is up to date and charged.';
+        return {
+          ...beforeTransform,
+          message: message ?? 'Invalid status code. Please make sure your device is up to date and charged.',
+        };
       },
       pathToCode: ['error.message'],
       pathToDomain: ['error.code'],
@@ -510,7 +511,8 @@ const runExample5 = () => {
     {
       pathToCode: ['message'],
       pathToMessage: ['data'],
-      transformMessage: (message, beforeTransform) => {
+      transform: (beforeTransform) => {
+        let message = beforeTransform.message;
         try {
           const data = message && JSON.parse(message);
           const list =
@@ -519,13 +521,16 @@ const runExample5 = () => {
             .map((t) => t?.toString())
             .filter((t) => t)
             : [];
-          return list?.[0] ?? message;
+          message = list?.[0] ?? message;
         }
         catch (error) {
           console.log(ErrorObject.from(error)?.force?.debugLog('PARSE1'));
         }
-        // I choose to say something went wrong here instead of sending back
-        return 'Something went wrong during sign up. Please try again later.';
+        // I choose to say something went wrong here instead of sending back an unknown value
+        return {
+          ...beforeTransform,
+          message: message ?? 'Something went wrong during sign up. Please try again later.',
+        };
       },
       checkInputObjectForValues: { status: { value: 'error', exists: true } },
     },
@@ -611,14 +616,17 @@ const runExample6 = () => {
     // You can access both the input object, or you can use the fact that the library stringifies the value found at any path, if it's an object/array.
     ErrorObject.from(response, {
       pathToMessage: ['body'],
-      transformNumberCode: (numberCode, beforeTransform, inputObject) => {
-        try {
-          if (
-            numberCode === undefined ||
-            numberCode === null ||
-            typeof numberCode !== 'number' ||
-            isNaN(numberCode)
-          ) {
+      transform: (beforeTransform, inputObject): ErrorObjectTransformState => {
+        let numberCode = beforeTransform.numberCode;
+        let code = beforeTransform.code;
+
+        if (
+          numberCode === undefined ||
+          numberCode === null ||
+          typeof numberCode !== 'number' ||
+          isNaN(numberCode)
+        ) {
+          try {
             const possibleNumberCode = JSON.parse(inputObject?.body)?.code;
             if (
               possibleNumberCode !== undefined &&
@@ -626,16 +634,15 @@ const runExample6 = () => {
               typeof possibleNumberCode === 'number' &&
               !isNaN(possibleNumberCode)
             ) {
-              return possibleNumberCode;
+              numberCode = possibleNumberCode;
+              code = possibleNumberCode.toString();
             }
           }
+          catch {
+            // We tried :)
+          }
         }
-        catch {
-          // We tried :)
-        }
-        return numberCode;
-      },
-      transformMessage: (message, beforeTransform, inputObject) => {
+        let message = beforeTransform.message;
         if (message) {
           const possibleMessage = JSON.parse(message)?.error;
           if (
@@ -643,33 +650,15 @@ const runExample6 = () => {
             possibleMessage !== null &&
             typeof possibleMessage === 'string'
           ) {
-            return possibleMessage;
+            message = possibleMessage;
           }
         }
-        return message;
-      },
-      // Now the above is not enough to work because if we take a look at the {@link DEFAULT_BUILD_OPTIONS} we can see that the transformCode function infers the value
-      // from beforeTransform.numberCode, which is not available at that time.
-      transformCode: (code, beforeTransform, inputObject) => {
-        try {
-          if (
-            code === undefined ||
-            code === null
-          ) {
-            const possibleCode = JSON.parse(inputObject?.body)?.code?.toString();
-            if (
-              possibleCode !== undefined &&
-              possibleCode !== null &&
-              typeof possibleCode === 'string'
-            ) {
-              return possibleCode;
-            }
-          }
-        }
-        catch {
-          // We tried :)
-        }
-        return code;
+        return {
+          ...beforeTransform,
+          numberCode,
+          code,
+          message,
+        };
       },
     }).force?.debugLog('LOG');
 
@@ -775,15 +764,17 @@ const runExample8 = () => {
     pathToCode: ['type'],
     pathToDomain: [],
     pathToDetails: ['type'],
-    transformMessage: (message, beforeTransform, inputObject) => {
-      const title = inputObject?.title && typeof inputObject?.title === 'string' ? inputObject?.title : undefined;
-      const detail = inputObject?.detail && typeof inputObject?.detail === 'string' ? inputObject?.detail : undefined;
-      return `${title} - ${detail}`;
-    },
-    transformCode: (code, beforeTransform, inputObject) => {
+    transform: (beforeTransform, inputObject): ErrorObjectTransformState => {
       const type = inputObject?.type && typeof inputObject?.type === 'string' ? inputObject?.type : undefined;
       const parts = type?.split('/');
-      return parts?.[parts.length - 1] ?? code;
+
+      return {
+        ...beforeTransform,
+        code: parts?.[parts.length - 1] ?? beforeTransform.code,
+        message: inputObject?.title?.length > 0 && inputObject?.detail?.length > 0
+                 ? `${inputObject?.title} - ${inputObject?.detail}`
+                 : inputObject?.title?.length > 0 ? inputObject?.title : inputObject?.detail,
+      };
     },
   }).force?.debugLog('LOG');
 
@@ -812,7 +803,7 @@ const runExample9 = () => {
       'password': ['The password field is required.'],
     },
   }, {
-    transformCode: () => 'invalid-data',
+    transform: (beforeTransform) => ({ ...beforeTransform, code: 'invalid-data' }),
     pathToMessage: ['errors.email.0', 'errors.password.0'],
   })?.force?.debugLog('LOG');
 
@@ -829,7 +820,7 @@ const runExample9 = () => {
     },
   }, {
     pathToDetails: ['errors'],
-    transformCode: () => 'invalid-data',
+    transform: (beforeTransform) => ({ ...beforeTransform, code: 'invalid-data' }),
   })?.force?.debugLog('LOG');
 
   // As I wrote before, the library does not do black magic. You can easily write a reducer to get all the values
@@ -873,10 +864,13 @@ const runExample10 = () => {
   }, {
     pathToCode: ['response.status.code'],
     pathToMessage: ['response.status.message'],
-    transformCode: (code, beforeTransform, inputObject) => {
-      const kind = inputObject?.kind && typeof inputObject?.kind === 'string' ? inputObject?.kind : undefined;
-      const apiVersion = inputObject?.apiVersion && typeof inputObject?.apiVersion === 'string' ? inputObject?.apiVersion : undefined;
-      return `${kind}/${apiVersion}`;
+    transform: (beforeTransform, inputObject): ErrorObjectTransformState => {
+      return {
+        ...beforeTransform,
+        code: inputObject?.kind?.length > 0 && inputObject?.apiVersion?.length > 0
+              ? `${inputObject?.kind}/${inputObject?.apiVersion}`
+              : inputObject?.kind?.length > 0 ? inputObject?.kind : inputObject?.apiVersion,
+      };
     },
   }).force?.debugLog('LOG');
 

@@ -61,28 +61,24 @@ export const DEFAULT_BUILD_OPTIONS: ErrorObjectBuildOptions = {
     'type',
   ]),
 
-  transformCode: (
-    old: string | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
-  ) => {
-    if (old === undefined || old === null) {
+  transform: (
+    beforeTransform: ErrorObjectTransformState,
+  ): ErrorObjectTransformState => {
+    let newCode = beforeTransform.code;
+    if (beforeTransform.code === undefined || beforeTransform.code === null) {
       const value = beforeTransform.numberCode;
       if (value !== undefined && value !== null) {
-        return value.toString();
+        newCode = value.toString();
       }
     }
-    return old;
-  },
-
-  transformMessage: (
-    old: string | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
-  ) => {
-    return old ?? 'Something went wrong';
+    return {
+      ...beforeTransform,
+      code: newCode,
+    };
   },
 };
 
-export type ErrorObjectBeforeTransformState = {
+export type ErrorObjectTransformState = {
   code?: string | undefined;
   numberCode?: number | undefined;
   message?: string | undefined;
@@ -120,31 +116,10 @@ export type ErrorObjectBuildOptions = {
   pathToDetails: string[];
   pathToDomain: string[];
 
-  transformCode?: (
-    value: string | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
+  transform?: (
+    beforeTransform: ErrorObjectTransformState,
     inputObject: any,
-  ) => string | undefined;
-  transformNumberCode?: (
-    value: number | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
-    inputObject: any,
-  ) => number | undefined;
-  transformMessage?: (
-    value: string | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
-    inputObject: any,
-  ) => string | undefined;
-  transformDetails?: (
-    value: string | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
-    inputObject: any,
-  ) => string | undefined;
-  transformDomain?: (
-    value: string | undefined,
-    beforeTransform: ErrorObjectBeforeTransformState,
-    inputObject: any,
-  ) => string | undefined;
+  ) => ErrorObjectTransformState;
 };
 
 export type PathValueAndTransform<V> = {
@@ -155,7 +130,6 @@ export type PathValueAndTransform<V> = {
 
 export type ErrorSummary = {
   didDetectErrorsArray?: boolean;
-  errorsArrayNotice?: string;
   input: NonNullable<Record<string, any>>;
   path?: string;
   value: {
@@ -197,16 +171,13 @@ export type ErrorObjectErrorResult =
   | 'pathToDomainIsInvalid'
   | 'pathToDomainIsNotAnArray'
   | 'pathToDomainValuesAreNotStrings'
-  | 'transformCodeIsNotAFunction'
+  | 'transformIsNotAFunction'
+  | 'transformResultIsNotAValidObject'
   | 'transformCodeResultIsNotString'
-  | 'transformNumberCodeIsNotAFunction'
   | 'transformNumberCodeResultIsNotNumber'
   | 'transformNumberCodeResultIsNaN'
-  | 'transformMessageIsNotAFunction'
   | 'transformMessageResultIsNotString'
-  | 'transformDetailsIsNotAFunction'
   | 'transformDetailsResultIsNotString'
-  | 'transformDomainIsNotAFunction'
   | 'transformDomainResultIsNotString'
   | 'buildSummaryIsNullish'
   | 'buildSummaryIsNotAnObject'

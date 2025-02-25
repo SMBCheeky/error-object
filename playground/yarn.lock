@@ -28,7 +28,7 @@
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
 "@smbcheeky/error-object@file:..":
-  version "0.0.1"
+  version "1.0.1"
   resolved "file:.."
 
 "@tsconfig/node10@^1.0.7":
