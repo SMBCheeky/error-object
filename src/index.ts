@@ -51,7 +51,6 @@ export class ErrorObject extends Error {
   static SHOW_ERROR_LOGS = true;
 
   // Used to instantiate the utility .generic and .fallback error objects
-
   static DEFAULT_GENERIC_CODE = 'generic';
   static DEFAULT_GENERIC_MESSAGE = 'Something went wrong';
 
@@ -59,7 +58,6 @@ export class ErrorObject extends Error {
   static DEFAULT_FALLBACK_TAG = 'fallback-error-object';
 
   // Used to customize all error objects
-
   static DEFAULT_DOMAIN = undefined;
 
   // Check `isGeneric()` and `isFallback()` for details.
@@ -153,22 +151,30 @@ export class ErrorObject extends Error {
     Object.setPrototypeOf(this, ErrorObject.prototype);
   }
 
-  // `ErrorObject.isGeneric()` allows users to check if an error is a generic error, usually used for quick iteration.
+  /**
+   * The {@link ErrorObject.isGeneric()} method allows users to check if an error is a generic error, usually used for quick iteration.
+   */
   isGeneric(): boolean {
     return this.tag === ErrorObject.DEFAULT_GENERIC_TAG;
   }
 
-  // `ErrorObject.isFallback()` allows users to check if an error is a fallback error, returned when an error could not be created.
+  /**
+   * The {@link ErrorObject.isFallback()} method allows users to check if an error is a fallback error, returned when an error could not be created.
+   */
   isFallback(): boolean {
     return this.tag === ErrorObject.DEFAULT_FALLBACK_TAG;
   }
 
-  // `ErrorObject.hasTag()` allows users to check if an error has a specific tag.
+  /**
+   * The {@link ErrorObject.hasTag()} method allows users to check if an error has a specific tag.
+   */
   hasTag(tag?: string): boolean {
     return tag ? this.tag === tag : !!this.tag;
   }
 
-  // `ErrorObject.new()` allows users to create a new error object from an existing one, useful when you want to just change the error message.
+  /**
+   * The {@link ErrorObject.new()} method allows users to create a new error object from an existing one, useful when you want to just change the error message.
+   */
   new() {
     return new ErrorObject(this);
   }
@@ -231,7 +237,6 @@ export class ErrorObject extends Error {
   }
 
   // Logging helpers
-
   toString() {
     // Create clean user facing description for error; you might even use it directly in your UI...
     let extraDomainAndCode = '';
@@ -287,6 +292,7 @@ export class ErrorObject extends Error {
     );
   }
 
+  // Log methods
   log(logTag: string) {
     return this._log(logTag, 'log');
   }
@@ -330,11 +336,16 @@ export class ErrorObject extends Error {
     return this;
   }
 
-  // Static utility methods
+  // Just a shortcut to create a generic error object with a specific tag
+  static withTag(tag: string) {
+    return ErrorObject.generic().setTag(tag);
+  }
 
-  // The {@link ErrorObject.from()} method is an alternative way to create an {@link ErrorObject} from anything resembling an error.
-  // It contains options for customizing how the input is processed and how the error is built.
-  // Check out the {@link ErrorObjectBuildOptions} type for more details.
+  /**
+   * The {@link ErrorObject.from()} method is an alternative way to create an {@link ErrorObject} from anything resembling an error.
+   * It contains options for customizing how the input is processed and how the error is built.
+   * Check out the {@link ErrorObjectBuildOptions} type for more details.
+   */
   static from(
     value: any,
     withOptions?: Partial<ErrorObjectBuildOptions>,
@@ -364,11 +375,6 @@ export class ErrorObject extends Error {
       summaries = [buildSummaryFromObject(value, undefined, false, options)];
     }
     return processErrorObjectResult(summaries, value, fallbackError);
-  }
-
-  // Just a shortcut to create a generic error object with a specific tag
-  static withTag(tag: string) {
-    return ErrorObject.generic().setTag(tag);
   }
 }
 
