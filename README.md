@@ -1,7 +1,9 @@
 ## TL;DR
 
 - Install the package `npm install @smbcheeky/error-object`
-- Write `ErrorObject.from(<pick an api response with an error>).force?.verboseLog('LOG')`
+- Write `ErrorObject.from(<pick an api response with an error>).force.verboseLog('LOG')` and use the info provided to
+  create your error
+- Switch the .force with .error, and now you have an error object
 - :tada:
 - oh... and check the [playground](https://github.com/SMBCheeky/error-object/blob/main/playground/index.ts) file
 
@@ -12,10 +14,10 @@ years, and across tens of projects, it has gathered quite a few features, and it
 
 I've been maintaining some version of this library and/or its principles on every project I worked on in the past 10
 years, across multiple languages and frameworks. But it has always been a copy-paste-modify-test-again cycle, and I am
-tired :) I took a few days to write this package... then re-write it... then refactor it... then delete 80%... then
-repeat everything 2 more times.
+tired :)
 
-You may not like what I've shared here, but I think it's a good conversation starter.
+I took a few days to write this package... then re-write it... then refactor it... then delete 80%... then
+repeat everything 2 more times.
 
 I hope you find this library useful, and I'm looking forward to hearing your feedback.
 
@@ -36,7 +38,7 @@ Pick a backend endpoint error response, a 3rd party library error response, or e
 code:
 
 ```typescript
-ErrorObject.from(response).force?.verboseLog('LOG')
+ErrorObject.from(response).force.verboseLog('LOG')
 ```
 
 -> you will have a smile on your face, but you may not understand what just happened.
@@ -198,15 +200,7 @@ const AuthMessageResolver = (
 };
 
 const createAuthError2 = (code: string) => {
-  return ErrorObject.from(
-    {
-      code,
-      domain: 'auth',
-    },
-    {
-      transform: AuthMessageResolver,
-    },
-  );
+  return ErrorObject.from({ code, domain: 'auth', }, { transform: AuthMessageResolver, });
 };
 
 
