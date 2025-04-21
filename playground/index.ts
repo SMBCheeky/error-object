@@ -247,7 +247,7 @@ const runExample1 = () => {
   ErrorObject.from(
     { code: 'generic-again' },
     {
-      transform: (beforeTransform) =>
+      transform: (beforeTransform: ErrorObjectTransformState) =>
         ({
           ...beforeTransform, message: beforeTransform.code
                                        ? ErrorObjectMessage1?.[beforeTransform.code as ErrorObjectCode1] ??
@@ -439,7 +439,7 @@ const runExample4 = () => {
       },
     },
     {
-      transform: (beforeTransform) => {
+      transform: (beforeTransform: ErrorObjectTransformState) => {
         let message: string | undefined;
         switch (beforeTransform.code) {
           case 'battery-low':
@@ -511,7 +511,7 @@ const runExample5 = () => {
     {
       pathToCode: ['message'],
       pathToMessage: ['data'],
-      transform: (beforeTransform) => {
+      transform: (beforeTransform: ErrorObjectTransformState) => {
         let message = beforeTransform.message;
         try {
           const data = message && JSON.parse(message);
@@ -559,7 +559,7 @@ const runExample5 = () => {
       pathToMessage: ['data'],
     },
   )
-  .force?.setMessage((old) => {
+  .force?.setMessage((old: string) => {
     try {
       return Object.values(JSON.parse(old))?.[0]?.toString() ?? old;
     }
@@ -616,7 +616,7 @@ const runExample6 = () => {
     // You can access both the input object, or you can use the fact that the library stringifies the value found at any path, if it's an object/array.
     ErrorObject.from(response, {
       pathToMessage: ['body'],
-      transform: (beforeTransform, inputObject): ErrorObjectTransformState => {
+      transform: (beforeTransform: ErrorObjectTransformState, inputObject: any): ErrorObjectTransformState => {
         let numberCode = beforeTransform.numberCode;
         let code = beforeTransform.code;
 
@@ -764,7 +764,7 @@ const runExample8 = () => {
     pathToCode: ['type'],
     pathToDomain: [],
     pathToDetails: ['type'],
-    transform: (beforeTransform, inputObject): ErrorObjectTransformState => {
+    transform: (beforeTransform: ErrorObjectTransformState, inputObject: any): ErrorObjectTransformState => {
       const type = inputObject?.type && typeof inputObject?.type === 'string' ? inputObject?.type : undefined;
       const parts = type?.split('/');
 
@@ -803,7 +803,7 @@ const runExample9 = () => {
       'password': ['The password field is required.'],
     },
   }, {
-    transform: (beforeTransform) => ({ ...beforeTransform, code: 'invalid-data' }),
+    transform: (beforeTransform: ErrorObjectTransformState) => ({ ...beforeTransform, code: 'invalid-data' }),
     pathToMessage: ['errors.email.0', 'errors.password.0'],
   })?.force?.debugLog('LOG');
 
@@ -820,7 +820,7 @@ const runExample9 = () => {
     },
   }, {
     pathToDetails: ['errors'],
-    transform: (beforeTransform) => ({ ...beforeTransform, code: 'invalid-data' }),
+    transform: (beforeTransform: ErrorObjectTransformState) => ({ ...beforeTransform, code: 'invalid-data' }),
   })?.force?.debugLog('LOG');
 
   // As I wrote before, the library does not do black magic. You can easily write a reducer to get all the values
@@ -864,7 +864,7 @@ const runExample10 = () => {
   }, {
     pathToCode: ['response.status.code'],
     pathToMessage: ['response.status.message'],
-    transform: (beforeTransform, inputObject): ErrorObjectTransformState => {
+    transform: (beforeTransform: ErrorObjectTransformState, inputObject: any): ErrorObjectTransformState => {
       return {
         ...beforeTransform,
         code: inputObject?.kind?.length > 0 && inputObject?.apiVersion?.length > 0
