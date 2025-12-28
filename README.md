@@ -39,7 +39,7 @@ new features:
 ## fromPayload()
 
 To parse errors from any payload, check
-out [@smbcheeky/error-object-from-payload](@smbcheeky/error-object-from-payload).
+out [@smbcheeky/error-object-from-payload](https://github.com/SMBCheeky/error-object-from-payload).
 
 ## Usage & Examples
 
