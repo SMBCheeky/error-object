@@ -1,19 +1,20 @@
 {
   "name": "@smbcheeky/error-object",
   "description": "Create errors that can be both thrown and returned. Make error handling easier for both JavaScript and TypeScript.",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "pack": "yarn build && npm pack",
-    "release": "yarn build && npm publish --access public",
+    "release": "yarn build && npm login && npm publish --access public",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
-    "tsup": "^6.5.0",
-    "typescript": "^4.9.4"
+    "tsup": "8.3.5",
+    "typescript": "^4.9.4",
+    "prettier": "^3.7.4"
   },
   "license": "MIT",
   "private": false,

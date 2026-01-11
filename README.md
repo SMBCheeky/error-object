@@ -12,19 +12,19 @@
 
 ## Description
 
-The ErrorObject class is made to extend `Error` enabling checks like `errorObject instanceof Error` or
-`errorObject instanceof ErrorObject`. The `ErrorObject` class is backwards compatible with `Error` and introduces a few
-new features:
+The ErrorObject class is made to extend `Error` enabling type guard checks like `errorObject instanceof Error`,
+`errorObject instanceof ErrorObject`, ErrorObject.is() and isErrorObject(). The `ErrorObject` class is backwards
+compatible with `Error` and introduces a few new features:
 
 - It can be thrown or returned, you choose.
 - It can be valid only if it contains a `code` and a `message` values
+- Intuitive type guards which help narrow down the type of JS objects
 - It can have a numberCode, not just a string code
-- set default values for the generic and fallback error objects via `ErrorObject.DEFAULT_GENERIC_CODE` and
+- set default values for the generic error objects via `ErrorObject.DEFAULT_GENERIC_CODE` and
   `ErrorObject.DEFAULT_GENERIC_MESSAGE`
 - set a default domain for all errors via `ErrorObject.DEFAULT_DOMAIN`
 - Use `ErrorObject.generic()` or `ErrorObject.withTag('TAG')` to create an error from thin air
-- Use `.isGeneric()`, `.isFallback()` and `.hasTag()` to check if the error is a generic error, a fallback error or
-  has a specific tag
+- Use `.isGeneric()`, and `.hasTag()` to check if the error is a generic error or has a specific tag
 - Chain call setters like `.setCode()`, `.setNumberCode()`, `.setMessage()`, `.setDetails()`, `.setDomain()`,
   `.setTag()` to modify the error
   object at any moment
@@ -36,18 +36,21 @@ new features:
 - Use `details`, `domain` and `tag` to customize the error object and help easily distinguish between different
   errors
 
-## fromPayload()
+## new ErrorObjectFromPayload(payload, options)
 
 To parse errors from any payload, check
 out [@smbcheeky/error-object-from-payload](https://github.com/SMBCheeky/error-object-from-payload).
 
 ## Usage & Examples
 
-For a guide on how to use the library, please check the first detailed example in
-the [playground](https://github.com/SMBCheeky/error-object/blob/main/playground/index.ts) file.
+You can find examples in the [playground](https://github.com/SMBCheeky/error-object/blob/main/playground/index.ts) file.
 
 ```typescript
-new ErrorObject({ code: '', message: 'Something went wrong.', domain: 'auth' }).debugLog('LOG');
+new ErrorObject({
+  code: "",
+  message: "Something went wrong.",
+  domain: "auth",
+}).debugLog("LOG");
 
 // [LOG] Something went wrong [auth]
 // {
@@ -55,4 +58,47 @@ new ErrorObject({ code: '', message: 'Something went wrong.', domain: 'auth' }).
 //   "message": "Something went wrong",
 //   "domain": "auth"
 // }
+```
+
+```typescript
+const foo = (): { success: true } | ErrorObject => {
+  return { success: true };
+};
+
+const fooError = (): { success: true } | ErrorObject => {
+  return ErrorObject.generic();
+};
+
+const result1 = foo();
+if (isErrorObject(result1)) {
+  result1;
+  result1.code;
+  console.log("result1 is ErrorObject");
+  return;
+}
+result1;
+// result1.code;
+console.log("result1 is not ErrorObject");
+
+const result2 = fooError();
+if (result2 instanceof ErrorObject) {
+  result2;
+  result2.code;
+  console.log("result2 is ErrorObject");
+  return;
+}
+result2;
+// result2.code;
+console.log("result2 is not ErrorObject");
+
+const result3 = foo();
+if (ErrorObject.is(result3)) {
+  result3;
+  result3.code;
+  console.log("result3 is ErrorObject");
+  return;
+}
+result3;
+// result3.code;
+console.log("result3 is not ErrorObject");
 ```
