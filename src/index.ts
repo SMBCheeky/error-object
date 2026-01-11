@@ -225,7 +225,7 @@ export class ErrorObject extends Error {
     return this._log(logTag, "verbose");
   }
 
-  private _log(logTag: string, logLevel: "log" | "debug" | "verbose") {
+  protected _log(logTag: string, logLevel: "log" | "debug" | "verbose") {
     const logForThis =
       logLevel === "verbose"
         ? this.toVerboseString()
