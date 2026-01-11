@@ -26,11 +26,7 @@
  * @property {string} [details] - A detailed error description created for user consumption.
  * @property {string} [domain] - Optional property to categorize the error based on a domain.
  * @property {string} [tag] - Optional property to categorize the error based on a tag.
- * @property {ErrorObject[]} [nextErrors] - Related error objects. usually populated when `pathToErrors` is used.
- * Allows grouping multiple errors under a single main error.
  * @property [raw] - Can store anything used to create the error.
- * @property {string} description - A description generated from the error object. Make an effort to make it a human-readable error message,
- * as this way you can just show the description directly to the user.
  */
 export class ErrorObject extends Error {
   readonly __isErrorObjectTypeDiscriminator = true;
@@ -58,7 +54,6 @@ export class ErrorObject extends Error {
   details?: string;
   domain?: string;
   tag?: string;
-  nextErrors?: this[];
   raw?: any;
 
   constructor({
@@ -68,7 +63,6 @@ export class ErrorObject extends Error {
     details,
     domain,
     tag,
-    nextErrors,
     raw,
   }: {
     code: string;
@@ -77,7 +71,6 @@ export class ErrorObject extends Error {
     details?: string;
     domain?: string;
     tag?: string;
-    nextErrors?: ErrorObject[];
     raw?: any;
   }) {
     super(message);
@@ -93,7 +86,6 @@ export class ErrorObject extends Error {
 
     // Add logging information
     this.tag = tag;
-    this.nextErrors = nextErrors as this[];
     this.raw = raw;
 
     // If you pass another ErrorObject or Error, these may also be useful
@@ -115,7 +107,7 @@ export class ErrorObject extends Error {
         : undefined;
 
     // Enable `instanceof` checks
-    Object.setPrototypeOf(this, ErrorObject.prototype);
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 
   /**
@@ -176,12 +168,6 @@ export class ErrorObject extends Error {
     return this;
   }
 
-  setNextErrors(value?: this[] | ((old?: this[]) => this[] | undefined)) {
-    this.nextErrors =
-      typeof value === "function" ? value(this.nextErrors) : value;
-    return this;
-  }
-
   // Logging helpers
   toString() {
     // Create a clean user facing description for error; you might even use it directly in your UI...
@@ -223,17 +209,7 @@ export class ErrorObject extends Error {
   }
 
   toVerboseString() {
-    return (
-      this.toDebugString() +
-      `\n${JSON.stringify(
-        {
-          raw: this.raw,
-          nextErrors: this.nextErrors,
-        },
-        null,
-        2,
-      )}`
-    );
+    return this.toDebugString() + `\n${JSON.stringify(this.raw, null, 2)}`;
   }
 
   // Log methods
@@ -256,23 +232,7 @@ export class ErrorObject extends Error {
         : logLevel === "debug"
           ? this.toDebugString()
           : this.toString();
-    if (Array.isArray(this.nextErrors) && this.nextErrors.length > 0) {
-      let row = 1;
-      console.log(`[${logTag}][${row}]`, logForThis);
-      for (const error of this.nextErrors) {
-        row++;
-        console.log(
-          `[${logTag}][${row}]`,
-          logLevel === "verbose"
-            ? error.toVerboseString()
-            : logLevel === "debug"
-              ? error.toDebugString()
-              : error.toString(),
-        );
-      }
-    } else {
-      console.log(`[${logTag}]`, logForThis);
-    }
+    console.log(`[${logTag}]`, logForThis);
     return this;
   }
 
@@ -299,8 +259,5 @@ export class ErrorObject extends Error {
  * Type guard to check if an object is an instance of ErrorObject
  */
 export function isErrorObject(object: any): object is ErrorObject {
-  return (
-    object instanceof ErrorObject ||
-    (object && object?.__isErrorObjectTypeDiscriminator === true)
-  );
+  return ErrorObject.is(object);
 }

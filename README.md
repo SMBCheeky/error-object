@@ -77,10 +77,10 @@ if (isErrorObject(result1)) {
   return;
 }
 result1;
-// result1.code;
+// result1.code; // triggers a type error
 console.log("result1 is not ErrorObject");
 
-const result2 = fooError();
+const result2 = foo();
 if (result2 instanceof ErrorObject) {
   result2;
   result2.code;
@@ -88,10 +88,10 @@ if (result2 instanceof ErrorObject) {
   return;
 }
 result2;
-// result2.code;
+// result2.code; // triggers a type error
 console.log("result2 is not ErrorObject");
 
-const result3 = foo();
+const result3 = fooError();
 if (ErrorObject.is(result3)) {
   result3;
   result3.code;
@@ -99,6 +99,6 @@ if (ErrorObject.is(result3)) {
   return;
 }
 result3;
-// result3.code;
+// result3.code; // triggers a type error
 console.log("result3 is not ErrorObject");
 ```
