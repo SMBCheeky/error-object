@@ -31,21 +31,17 @@
 export class ErrorObject extends Error {
   readonly __isErrorObjectTypeDiscriminator = true;
 
-  // Used to instantiate the utility .generic and .fallback error objects
-  static DEFAULT_GENERIC_CODE = "generic";
-  static DEFAULT_GENERIC_MESSAGE = "Something went wrong";
+  static LOG_METHOD: (...data: any[]) => void = console.log;
 
-  static DEFAULT_GENERIC_TAG = "generic-error-object";
+  static GENERIC_CODE = "generic";
+  static GENERIC_MESSAGE = "Something went wrong";
+  static GENERIC_TAG = "generic-error-object";
 
-  // Used to customize all error objects
-  static DEFAULT_DOMAIN = undefined;
-
-  // Check `isGeneric()` and `isFallback()` for details.
   static generic = () =>
     new this({
-      code: ErrorObject.DEFAULT_GENERIC_CODE,
-      message: ErrorObject.DEFAULT_GENERIC_MESSAGE,
-      tag: ErrorObject.DEFAULT_GENERIC_TAG,
+      code: ErrorObject.GENERIC_CODE,
+      message: ErrorObject.GENERIC_MESSAGE,
+      tag: ErrorObject.GENERIC_TAG,
     });
 
   code: string;
@@ -79,10 +75,7 @@ export class ErrorObject extends Error {
     this.numberCode = numberCode;
     this.message = message;
     this.details = details;
-    this.domain =
-      typeof domain === "string" && domain
-        ? domain
-        : ErrorObject.DEFAULT_DOMAIN;
+    this.domain = domain;
 
     // Add logging information
     this.tag = tag;
@@ -114,7 +107,7 @@ export class ErrorObject extends Error {
    * The {@link ErrorObject.isGeneric()} method allows users to check if an error is a generic error, usually used for quick iteration.
    */
   isGeneric(): boolean {
-    return this.tag === ErrorObject.DEFAULT_GENERIC_TAG;
+    return this.tag === ErrorObject.GENERIC_TAG;
   }
 
   /**
@@ -232,7 +225,9 @@ export class ErrorObject extends Error {
         : logLevel === "debug"
           ? this.toDebugString()
           : this.toString();
-    console.log(`[${logTag}]`, logForThis);
+    ErrorObject.LOG_METHOD &&
+      typeof ErrorObject.LOG_METHOD === "function" &&
+      ErrorObject.LOG_METHOD(`[${logTag}]`, logForThis);
     return this;
   }
 

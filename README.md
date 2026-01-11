@@ -36,6 +36,15 @@ compatible with `Error` and introduces a few new features:
 - Use `details`, `domain` and `tag` to customize the error object and help easily distinguish between different
   errors
 
+## Override default log method (default is `console.log`)
+
+To override the default log method, set the static property `LOG_METHOD` to a function that accepts any number of
+arguments and returns nothing. The default log method is `console.log`.
+
+## Override default generic error code and message
+
+To override the default generic error code and message, set the static properties `GENERIC_CODE` and `GENERIC_MESSAGE`.
+
 ## new ErrorObjectFromPayload(payload, options)
 
 To parse errors from any payload, check

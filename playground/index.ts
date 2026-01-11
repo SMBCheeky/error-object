@@ -117,8 +117,35 @@ const runFieldChecks = () => {
   // }
 };
 
+const runOverrides = () => {
+  console.log(
+    "\n-Overrides------------------------------------------------------------------------------\n",
+  );
+
+  ErrorObject.GENERIC_CODE = "specific?";
+  ErrorObject.GENERIC_MESSAGE = "Something went :(";
+
+  let objectWithLogic = { complex: true };
+
+  ErrorObject.LOG_METHOD = () => {
+    objectWithLogic.complex = false;
+  };
+
+  console.log(objectWithLogic, "should be { complex: true }");
+  ErrorObject.generic().log("LOG");
+  console.log(objectWithLogic, "should be { complex: false }");
+
+  // { complex: true } should be { complex: true }
+  // { complex: false } should be { complex: false }
+
+  ErrorObject.LOG_METHOD = null as any;
+  ErrorObject.generic().log("LOG").debugLog("LOG").verboseLog("LOG");
+  // should not show anything
+};
+
 console.log("\n\n\n\n\n\n");
 
 runSanityChecks();
 runTypeChecks();
 runFieldChecks();
+runOverrides();
