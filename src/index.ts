@@ -6,7 +6,7 @@
  * - remove day-to-day boilerplate code
  * - improve error handling
  *
- * How to check if object is an ErrorObject:
+ * How to check if an object is an ErrorObject:
  *
  *
  *     const errorObject = new ErrorObject.generic();
@@ -26,41 +26,22 @@
  * @property {string} [details] - A detailed error description created for user consumption.
  * @property {string} [domain] - Optional property to categorize the error based on a domain.
  * @property {string} [tag] - Optional property to categorize the error based on a tag.
- * @property {string} [summary] - Optional property that is used to document the steps and data gathered when building the error.
- * @property {any[]} [processingErrors] - Optional property logs if there are any errors that were dropped during processing.
- * Populated when multiple errors are detected. Contains an error string for every error dropped and contains a summary if possible.
- * @property {ErrorObject[]} [nextErrors] - Related error objects. usually populated when `pathToErrors` is used.
- * Allows grouping multiple errors under a single main error.
- * @property [raw] - Can store the input object that was used to create the error.
- * @property {string} description - A description generated from the error object. Make an effort to make it a human-readable error message,
- * as this way you can just show the description directly to the user.
+ * @property [raw] - Can store anything used to create the error.
  */
 export class ErrorObject extends Error {
-  // Used for try catch blocks. I recommend keeping this on at all times
-  static SHOW_ERROR_LOGS = true;
+  readonly __isErrorObjectTypeDiscriminator = true;
 
-  // Used to instantiate the utility .generic and .fallback error objects
-  static DEFAULT_GENERIC_CODE = 'generic';
-  static DEFAULT_GENERIC_MESSAGE = 'Something went wrong';
+  static LOG_METHOD: (...data: any[]) => void = console.log;
 
-  static DEFAULT_GENERIC_TAG = 'generic-error-object';
-  static DEFAULT_FALLBACK_TAG = 'fallback-error-object';
+  static GENERIC_CODE = "generic";
+  static GENERIC_MESSAGE = "Something went wrong";
+  static GENERIC_TAG = "generic-error-object";
 
-  // Used to customize all error objects
-  static DEFAULT_DOMAIN = undefined;
-
-  // Check `isGeneric()` and `isFallback()` for details.
   static generic = () =>
-    new ErrorObject({
-      code: ErrorObject.DEFAULT_GENERIC_CODE,
-      message: ErrorObject.DEFAULT_GENERIC_MESSAGE,
-      tag: ErrorObject.DEFAULT_GENERIC_TAG,
-    });
-  static fallback = () =>
-    new ErrorObject({
-      code: ErrorObject.DEFAULT_GENERIC_CODE,
-      message: ErrorObject.DEFAULT_GENERIC_MESSAGE,
-      tag: ErrorObject.DEFAULT_FALLBACK_TAG,
+    new this({
+      code: ErrorObject.GENERIC_CODE,
+      message: ErrorObject.GENERIC_MESSAGE,
+      tag: ErrorObject.GENERIC_TAG,
     });
 
   code: string;
@@ -68,35 +49,24 @@ export class ErrorObject extends Error {
   message: string;
   details?: string;
   domain?: string;
-
-  readonly summary?: Record<string, any>;
-
-  processingErrors?: any[];
   tag?: string;
-  nextErrors?: ErrorObject[];
   raw?: any;
 
   constructor({
-                code,
-                numberCode,
-                message,
-                details,
-                domain,
-                summary,
-                processingErrors,
-                tag,
-                nextErrors,
-                raw,
-              }: {
+    code,
+    numberCode,
+    message,
+    details,
+    domain,
+    tag,
+    raw,
+  }: {
     code: string;
     numberCode?: number;
     message: string;
     details?: string;
     domain?: string;
-    summary?: Record<string, any>;
-    processingErrors?: any[];
     tag?: string;
-    nextErrors?: ErrorObject[];
     raw?: any;
   }) {
     super(message);
@@ -105,53 +75,39 @@ export class ErrorObject extends Error {
     this.numberCode = numberCode;
     this.message = message;
     this.details = details;
-    this.domain =
-      typeof domain === 'string' && domain
-      ? domain
-      : ErrorObject.DEFAULT_DOMAIN;
+    this.domain = domain;
 
     // Add logging information
-    this.summary = summary;
-
-    this.processingErrors = processingErrors;
     this.tag = tag;
-    this.nextErrors = nextErrors;
     this.raw = raw;
 
     // If you pass another ErrorObject or Error, these may also be useful
     this.name =
       this.raw &&
-      typeof this.raw === 'object' &&
-      'name' in this.raw &&
-      typeof this.raw.name === 'string' &&
+      typeof this.raw === "object" &&
+      "name" in this.raw &&
+      typeof this.raw.name === "string" &&
       this.raw.name.length > 0
-      ? this.raw.name
-      : this.code;
+        ? this.raw.name
+        : this.code;
     this.stack =
       this.raw &&
-      typeof this.raw === 'object' &&
-      'stack' in this.raw &&
-      typeof this.raw.stack === 'string' &&
+      typeof this.raw === "object" &&
+      "stack" in this.raw &&
+      typeof this.raw.stack === "string" &&
       this.raw.stack.length > 0
-      ? this.raw.stack
-      : undefined;
+        ? this.raw.stack
+        : undefined;
 
     // Enable `instanceof` checks
-    Object.setPrototypeOf(this, ErrorObject.prototype);
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 
   /**
    * The {@link ErrorObject.isGeneric()} method allows users to check if an error is a generic error, usually used for quick iteration.
    */
   isGeneric(): boolean {
-    return this.tag === ErrorObject.DEFAULT_GENERIC_TAG;
-  }
-
-  /**
-   * The {@link ErrorObject.isFallback()} method allows users to check if an error is a fallback error, returned when an error could not be created.
-   */
-  isFallback(): boolean {
-    return this.tag === ErrorObject.DEFAULT_FALLBACK_TAG;
+    return this.tag === ErrorObject.GENERIC_TAG;
   }
 
   /**
@@ -170,80 +126,60 @@ export class ErrorObject extends Error {
 
   // Setters
   setCode(value: string | ((old: string) => string)) {
-    this.code = typeof value === 'function' ? value(this.code) : value;
+    this.code = typeof value === "function" ? value(this.code) : value;
     return this;
   }
 
   setNumberCode(value?: number | ((old?: number) => number | undefined)) {
     this.numberCode =
-      typeof value === 'function' ? value(this.numberCode) : value;
+      typeof value === "function" ? value(this.numberCode) : value;
     return this;
   }
 
   setMessage(value: string | ((old: string) => string)) {
-    this.message = typeof value === 'function' ? value(this.message) : value;
+    this.message = typeof value === "function" ? value(this.message) : value;
     return this;
   }
 
   setDetails(value?: string | ((old?: string) => string | undefined)) {
-    this.details = typeof value === 'function' ? value(this.details) : value;
+    this.details = typeof value === "function" ? value(this.details) : value;
     return this;
   }
 
   setDomain(value?: string | ((old?: string) => string | undefined)) {
-    this.domain = typeof value === 'function' ? value(this.domain) : value;
+    this.domain = typeof value === "function" ? value(this.domain) : value;
     return this;
   }
 
   setTag(value?: string | ((old?: string) => string | undefined)) {
-    this.tag = typeof value === 'function' ? value(this.tag) : value;
-    return this;
-  }
-
-  setProcessingErrors(
-    value?:
-      | any[]
-      | ((
-      old?: any[],
-    ) => any[] | undefined),
-  ) {
-    this.processingErrors =
-      typeof value === 'function' ? value(this.processingErrors) : value;
+    this.tag = typeof value === "function" ? value(this.tag) : value;
     return this;
   }
 
   setRaw(value?: any | ((old?: any) => any | undefined)) {
-    this.raw = typeof value === 'function' ? value(this.raw) : value;
-    return this;
-  }
-
-  setNextErrors(
-    value?: ErrorObject[] | ((old?: ErrorObject[]) => ErrorObject[] | undefined),
-  ) {
-    this.nextErrors =
-      typeof value === 'function' ? value(this.nextErrors) : value;
+    this.raw = typeof value === "function" ? value(this.raw) : value;
     return this;
   }
 
   // Logging helpers
   toString() {
-    // Create clean user facing description for error; you might even use it directly in your UI...
-    let extraDomainAndCode = '';
-    let extraDomain = this.domain && this.domain?.length > 0 ? this.domain : '';
+    // Create a clean user facing description for error; you might even use it directly in your UI...
+    let extraDomainAndCode = "";
+    let extraDomain = this.domain && this.domain?.length > 0 ? this.domain : "";
     let extraCode =
       this.code.length > 0 &&
       (this.domain
-       ? this.domain?.length > 0 && !this.domain.includes(this.code)
-       : true)
-      ? this.code
-      : '';
+        ? this.domain?.length > 0 && !this.domain.includes(this.code)
+        : true)
+        ? this.code
+        : "";
     if (extraCode?.length > 0 || extraDomain?.length > 0) {
       extraDomainAndCode = `[${extraDomain}${
-        extraDomain?.length > 0 && extraCode?.length > 0 ? '/' : ''
+        extraDomain?.length > 0 && extraCode?.length > 0 ? "/" : ""
       }${extraCode}]`;
     }
     return `${this.message}${
-      extraDomainAndCode?.length > 0 ? ' ' : ''
+      extraDomainAndCode?.length > 0 ? " " : ""
     }${extraDomainAndCode}`;
   }
 
@@ -266,67 +202,57 @@ export class ErrorObject extends Error {
   }
 
   toVerboseString() {
-    return (
-      this.toDebugString() +
-      `\n${JSON.stringify(
-        {
-          processingErrors: this.processingErrors,
-          summary: this.summary,
-          raw: this.raw,
-          nextErrors: this.nextErrors,
-        },
-        null,
-        2,
-      )}`
-    );
+    return this.toDebugString() + `\n${JSON.stringify(this.raw, null, 2)}`;
   }
 
   // Log methods
   log(logTag: string) {
-    return this._log(logTag, 'log');
+    return this._log(logTag, "log");
   }
 
   debugLog(logTag: string) {
-    return this._log(logTag, 'debug');
+    return this._log(logTag, "debug");
   }
 
   verboseLog(logTag: string) {
-    return this._log(logTag, 'verbose');
+    return this._log(logTag, "verbose");
   }
 
-  private _log(
-    logTag: string,
-    logLevel: 'log' | 'debug' | 'verbose',
-  ) {
+  protected _log(logTag: string, logLevel: "log" | "debug" | "verbose") {
     const logForThis =
-      logLevel === 'verbose'
-      ? this.toVerboseString()
-      : logLevel === 'debug'
-        ? this.toDebugString()
-        : this.toString();
-    if (Array.isArray(this.nextErrors) && this.nextErrors.length > 0) {
-      let row = 1;
-      console.log(`[${logTag}][${row}]`, logForThis);
-      for (const error of this.nextErrors) {
-        row++;
-        console.log(
-          `[${logTag}][${row}]`,
-          logLevel === 'verbose'
-          ? error.toVerboseString()
-          : logLevel === 'debug'
-            ? error.toDebugString()
-            : error.toString(),
-        );
-      }
-    }
-    else {
-      console.log(`[${logTag}]`, logForThis);
-    }
+      logLevel === "verbose"
+        ? this.toVerboseString()
+        : logLevel === "debug"
+          ? this.toDebugString()
+          : this.toString();
+    ErrorObject.LOG_METHOD &&
+      typeof ErrorObject.LOG_METHOD === "function" &&
+      ErrorObject.LOG_METHOD(`[${logTag}]`, logForThis);
     return this;
   }
 
-  // Just a shortcut to create a generic error object with a specific tag
+  /**
+   * The {@link ErrorObject.withTag()} method allows users to create
+   * a new generic error object with a specific tag.
+   */
   static withTag(tag: string) {
     return ErrorObject.generic().setTag(tag);
   }
+
+  /**
+   * Type guard to check if an object is an instance of ErrorObject
+   */
+  static is(object: any): object is ErrorObject {
+    return (
+      object instanceof ErrorObject ||
+      (object && object?.__isErrorObjectTypeDiscriminator === true)
+    );
+  }
+}
+
+/**
+ * Type guard to check if an object is an instance of ErrorObject
+ */
+export function isErrorObject(object: any): object is ErrorObject {
+  return ErrorObject.is(object);
 }
