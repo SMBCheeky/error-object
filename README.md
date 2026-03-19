@@ -4,110 +4,224 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/smbcheeky/error-object)](https://github.com/smbcheeky/error-object)
 [![GitHub stars](https://img.shields.io/github/stars/smbcheeky/error-object)](https://img.shields.io/github/stars/smbcheeky/error-object)
 
+# ErrorObject
+
+A lightweight `Error` subclass for structured, chainable error handling in JavaScript and TypeScript. Errors that can be
+both thrown and returned with built-in type guards, chainable setters, and logging.
+
 ## Installation
 
-`npm install @smbcheeky/error-object`
+```bash
+npm install @smbcheeky/error-object
+```
 
-`yarn add @smbcheeky/error-object`
+```bash
+yarn add @smbcheeky/error-object
+```
 
-## Description
+## Why ErrorObject?
 
-The ErrorObject class is made to extend `Error` enabling type guard checks like `errorObject instanceof Error`,
-`errorObject instanceof ErrorObject`, ErrorObject.is() and isErrorObject(). The `ErrorObject` class is backwards
-compatible with `Error` and introduces a few new features:
+`ErrorObject` extends `Error`, so it works everywhere a regular `Error` does (`instanceof Error`, `try/catch`, etc.)
+while adding structure and ergonomics:
 
-- It can be thrown or returned, you choose.
-- It can be valid only if it contains a `code` and a `message` values
-- Intuitive type guards which help narrow down the type of JS objects
-- It can have a numberCode, not just a string code
-- set default values for the generic error objects via `ErrorObject.DEFAULT_GENERIC_CODE` and
-  `ErrorObject.DEFAULT_GENERIC_MESSAGE`
-- set a default domain for all errors via `ErrorObject.DEFAULT_DOMAIN`
-- Use `ErrorObject.generic()` or `ErrorObject.withTag('TAG')` to create an error from thin air
-- Use `.isGeneric()`, and `.hasTag()` to check if the error is a generic error or has a specific tag
-- Chain call setters like `.setCode()`, `.setNumberCode()`, `.setMessage()`, `.setDetails()`, `.setDomain()`,
-  `.setTag()` to modify the error
-  object at any moment
-- Setters can receive a value or a transform function, facilitating access to the current value while you modify the
-  property
-- Chain logs like `.log(tag)`, `.debugLog(tag)`, `.verboseLog(tag)` to log information about the error object
-  inline
-- Use `.description()` or `.toString()` to get a human-readable description of the error
-- Use `details`, `domain` and `tag` to customize the error object and help easily distinguish between different
-  errors
+- **Throw or return** — use whichever pattern fits your codebase
+- **Type guards** — `isErrorObject()`, `ErrorObject.is()`, and `instanceof` all work for narrowing types
+- **Structured properties** — `code`, `message`, `numberCode`, `details`, `domain`, `tag`, and `raw`
+- **Chainable setters** — modify any property inline with `.setCode()`, `.setMessage()`, etc.
+- **Setters accept transforms** — pass a function to access the current value while modifying it
+- **Built-in logging** — `.log(tag)` and `.debugLog(tag)` for inline logging
+- **Subclass-friendly** — works correctly with `extends ErrorObject`
 
-## Override default log method (default is `console.log`)
-
-To override the default log method, set the static property `LOG_METHOD` to a function that accepts any number of
-arguments and returns nothing. The default log method is `console.log`.
-
-## Override default generic error code and message
-
-To override the default generic error code and message, set the static properties `GENERIC_CODE` and `GENERIC_MESSAGE`.
-
-## new ErrorObjectFromPayload(payload, options)
-
-To parse errors from any payload, check
-out [@smbcheeky/error-object-from-payload](https://github.com/SMBCheeky/error-object-from-payload).
-
-## Usage & Examples
-
-You can find examples in the [playground](https://github.com/SMBCheeky/error-object/blob/main/playground/index.ts) file.
+## Quick Start
 
 ```typescript
-new ErrorObject({
-  code: "",
-  message: "Something went wrong.",
+import { ErrorObject, isErrorObject, ErrorObjectParams } from "@smbcheeky/error-object";
+
+// Create an error
+const error = new ErrorObject({
+  code: "auth/invalid-token",
+  message: "Your session has expired.",
   domain: "auth",
-}).debugLog("LOG");
+});
 
-// [LOG] Something went wrong [auth]
-// {
-//   "code": "",
-//   "message": "Something went wrong",
-//   "domain": "auth"
-// }
+// Chain setters and log inline
+error
+.setDetails("Please sign in again.")
+.setNumberCode(401)
+.debugLog("AUTH");
+
+// [AUTH] Your session has expired. [auth/invalid-token]
+// [DEBUG] { "code": "auth/invalid-token", "numberCode": 401, ... }
 ```
+
+## Creating Errors
 
 ```typescript
-const foo = (): { success: true } | ErrorObject => {
-  return { success: true };
-};
+// From explicit properties
+new ErrorObject({ code: "not-found", message: "User not found." });
 
-const fooError = (): { success: true } | ErrorObject => {
-  return ErrorObject.generic();
-};
+// Generic error (uses configurable defaults)
+ErrorObject.generic();
 
-const result1 = foo();
-if (isErrorObject(result1)) {
-  result1;
-  result1.code;
-  console.log("result1 is ErrorObject");
-  return;
-}
-result1;
-// result1.code; // triggers a type error
-console.log("result1 is not ErrorObject");
+// Generic error with a tag
+ErrorObject.withTag("network-timeout");
 
-const result2 = foo();
-if (result2 instanceof ErrorObject) {
-  result2;
-  result2.code;
-  console.log("result2 is ErrorObject");
-  return;
-}
-result2;
-// result2.code; // triggers a type error
-console.log("result2 is not ErrorObject");
-
-const result3 = fooError();
-if (ErrorObject.is(result3)) {
-  result3;
-  result3.code;
-  console.log("result3 is ErrorObject");
-  return;
-}
-result3;
-// result3.code; // triggers a type error
-console.log("result3 is not ErrorObject");
+// Clone an existing error
+existingError.clone();
+// .new() also works but is deprecated in favor of .clone()
 ```
+
+## Type Guards
+
+All three approaches narrow the type correctly in TypeScript:
+
+```typescript
+const result: { success: true } | ErrorObject = someFn();
+
+// Option 1: standalone function
+if (isErrorObject(result)) {
+  result.code; // TypeScript knows this is ErrorObject
+  return;
+}
+
+// Option 2: static method
+if (ErrorObject.is(result)) {
+  result.code;
+  return;
+}
+
+// Option 3: instanceof
+if (result instanceof ErrorObject) {
+  result.code;
+  return;
+}
+
+result; // TypeScript knows this is { success: true }
+```
+
+## Chainable Setters
+
+Every setter returns `this`, so you can chain them. Each setter accepts either a value or a transform function:
+
+```typescript
+ErrorObject.generic()
+.setCode("upload/too-large")
+.setMessage("File exceeds the size limit.")
+.setDomain("storage")
+.setNumberCode(413)
+.setDetails("Maximum file size is 10MB.")
+.setTag("upload-validation")
+.setRaw(originalError);
+
+// Transform function — access the current value
+error.setMessage((old) => `${old} Please try again.`);
+```
+
+## Properties
+
+| Property     | Type     | Required | Description                                          |
+|--------------|----------|----------|------------------------------------------------------|
+| `code`       | `string` | Yes      | Identifier for the error, ideally human-readable     |
+| `message`    | `string` | Yes      | Primary error message                                |
+| `numberCode` | `number` | No       | Numeric code (e.g. HTTP status)                      |
+| `details`    | `string` | No       | Extended description, suitable for showing to users  |
+| `domain`     | `string` | No       | Category grouping (e.g. `"auth"`, `"storage"`)       |
+| `tag`        | `string` | No       | Finer-grained label for filtering or identification  |
+| `raw`        | `any`    | No       | Original error or payload used to create this object |
+
+The constructor accepts an `ErrorObjectParams` object, which is exported for use in wrapper functions and utilities.
+
+## Logging
+
+`.log(tag)` outputs `toString()`, `.debugLog(tag)` outputs `toDebugString()` which includes a full JSON dump:
+
+```typescript
+new ErrorObject({ code: "timeout", message: "Request timed out.", domain: "api" })
+.log("NET")
+.debugLog("NET");
+
+// [NET] Request timed out. [api/timeout]
+// [NET] Request timed out. [api/timeout]
+// [DEBUG] { "code": "timeout", "message": "Request timed out.", "domain": "api" }
+```
+
+Both methods return `this` so they can be chained inline.
+
+## Tag Checks
+
+```typescript
+const error = ErrorObject.generic();
+
+error.isGeneric();   // true — checks if tag matches GENERIC_TAG
+error.hasTag();      // true — checks if any tag is set
+error.hasTag("foo"); // false — checks for a specific tag
+```
+
+## Serialization
+
+`.toJSON()` returns a clean object with only ErrorObject properties (no inherited `Error` fields or internal discriminators):
+
+```typescript
+const error = new ErrorObject({ code: "not-found", message: "User not found.", domain: "users" });
+JSON.stringify(error);
+// {"code":"not-found","message":"User not found.","domain":"users"}
+```
+
+## String Output
+
+`.toString()` produces a clean, user-facing string. `.toDebugString()` appends a full JSON dump prefixed with `[DEBUG]`. What `.toString()` includes is configurable:
+
+```typescript
+ErrorObject.INCLUDE_CODE_IN_STRING = true;   // default
+ErrorObject.INCLUDE_DOMAIN_IN_STRING = false; // default
+
+new ErrorObject({ code: "not-found", message: "User not found.", domain: "users" }).toString();
+// "User not found. [not-found]"
+
+ErrorObject.INCLUDE_DOMAIN_IN_STRING = true;
+// "User not found. [users/not-found]"
+```
+
+## Static Configuration
+
+Override these static properties to customize defaults across your app:
+
+```typescript
+// Change the generic error defaults
+ErrorObject.GENERIC_CODE = "error";
+ErrorObject.GENERIC_MESSAGE = "An unexpected error occurred";
+ErrorObject.GENERIC_TAG = "generic-error-object";
+
+// Control what toString() includes
+ErrorObject.INCLUDE_CODE_IN_STRING = true;
+ErrorObject.INCLUDE_DOMAIN_IN_STRING = false;
+
+// Replace the log method (default is console.log)
+ErrorObject.LOG_METHOD = myLogger.error;
+
+// Disable logging entirely
+ErrorObject.LOG_METHOD = null;
+```
+
+## Subclassing
+
+`ErrorObject` is designed to be extended. `instanceof` checks work correctly for derived classes:
+
+```typescript
+class ApiError extends ErrorObject {
+}
+
+const err = new ApiError({ code: "500", message: "Internal server error" });
+err instanceof ApiError;     // true
+err instanceof ErrorObject;  // true
+err instanceof Error;        // true
+```
+
+## Parsing Errors from Any Payload
+
+To create an `ErrorObject` from API responses, caught exceptions, or other unknown payloads,
+see [@smbcheeky/error-object-from-payload](https://github.com/SMBCheeky/error-object-from-payload).
+
+## More Examples
+
+See the [playground](https://github.com/SMBCheeky/error-object/blob/main/playground/index.ts) for runnable examples.
