@@ -91,8 +91,7 @@ const runFieldChecks = () => {
     .setDetails("details")
     .debugLog("LOG2")
     .setNumberCode(123)
-    .setRaw({ foo: "bar" })
-    .verboseLog("LOG3");
+    .setRaw({ foo: "bar" });
 
   // [LOG1] Something went wrong. [regular error]
   // [LOG2] Something went wrong. [auth/regular error]
@@ -125,6 +124,24 @@ const runOverrides = () => {
   ErrorObject.GENERIC_CODE = "specific?";
   ErrorObject.GENERIC_MESSAGE = "Something went :(";
 
+  ErrorObject.INCLUDE_CODE_IN_STRING = true;
+  ErrorObject.INCLUDE_DOMAIN_IN_STRING = false;
+
+  ErrorObject.generic().setDomain("should not show").log("LOG").debugLog("LOG");
+
+  ErrorObject.INCLUDE_CODE_IN_STRING = false;
+  ErrorObject.INCLUDE_DOMAIN_IN_STRING = true;
+
+  ErrorObject.generic().setDomain("should show").log("LOG").debugLog("LOG");
+
+  ErrorObject.INCLUDE_CODE_IN_STRING = false;
+  ErrorObject.INCLUDE_DOMAIN_IN_STRING = false;
+
+  ErrorObject.generic()
+    .setDomain("should not show this, should not show code")
+    .log("LOG")
+    .debugLog("LOG");
+
   let objectWithLogic = { complex: true };
 
   ErrorObject.LOG_METHOD = () => {
@@ -139,7 +156,7 @@ const runOverrides = () => {
   // { complex: false } should be { complex: false }
 
   ErrorObject.LOG_METHOD = null as any;
-  ErrorObject.generic().log("LOG").debugLog("LOG").verboseLog("LOG");
+  ErrorObject.generic().log("LOG").debugLog("LOG");
   // should not show anything
 };
 

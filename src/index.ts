@@ -9,7 +9,7 @@
  * How to check if an object is an ErrorObject:
  *
  *
- *     const errorObject = new ErrorObject.generic();
+ *     const errorObject = ErrorObject.generic();
  *     errorObject instanceof ErrorObject => true
  *     errorObject instanceof Error => true
  *
@@ -19,30 +19,44 @@
  *
  *
  * @extends {Error}
- *
- * @property {string} code - The error code used to identify and resolve the error. It is recommended codes are written to be human-readable, especially for the end-user.
- * @property {string} message - The primary error message.
- * @property {number} [numberCode] - Optional numeric identifier for the error, for cases when the string error code is not sufficient.
- * @property {string} [details] - A detailed error description created for user consumption.
- * @property {string} [domain] - Optional property to categorize the error based on a domain.
- * @property {string} [tag] - Optional property to categorize the error based on a tag.
- * @property [raw] - Can store anything used to create the error.
  */
+
+export interface ErrorObjectParams {
+  /** The error code used to identify and resolve the error. It is recommended codes are written to be human-readable, especially for the end-user. */
+  code: string;
+  /** Optional numeric identifier for the error, for cases when the string error code is not sufficient. */
+  numberCode?: number;
+  /** The primary error message. */
+  message: string;
+  /** A detailed error description created for user consumption. */
+  details?: string;
+  /** Optional property to categorize the error based on a domain. */
+  domain?: string;
+  /** Optional property to categorize the error based on a tag. */
+  tag?: string;
+  /** Can store anything used to create the error. */
+  raw?: any;
+}
+
 export class ErrorObject extends Error {
   readonly __isErrorObjectTypeDiscriminator = true;
 
-  static LOG_METHOD: (...data: any[]) => void = console.log;
+  static LOG_METHOD: ((...data: any[]) => void) | null = console.log;
 
   static GENERIC_CODE = "generic";
   static GENERIC_MESSAGE = "Something went wrong";
   static GENERIC_TAG = "generic-error-object";
 
-  static generic = () =>
-    new this({
+  static INCLUDE_DOMAIN_IN_STRING = false;
+  static INCLUDE_CODE_IN_STRING = true;
+
+  static generic() {
+    return new this({
       code: ErrorObject.GENERIC_CODE,
       message: ErrorObject.GENERIC_MESSAGE,
       tag: ErrorObject.GENERIC_TAG,
     });
+  }
 
   code: string;
   numberCode?: number;
@@ -52,23 +66,7 @@ export class ErrorObject extends Error {
   tag?: string;
   raw?: any;
 
-  constructor({
-    code,
-    numberCode,
-    message,
-    details,
-    domain,
-    tag,
-    raw,
-  }: {
-    code: string;
-    numberCode?: number;
-    message: string;
-    details?: string;
-    domain?: string;
-    tag?: string;
-    raw?: any;
-  }) {
+  constructor({ code, numberCode, message, details, domain, tag, raw }: ErrorObjectParams) {
     super(message);
 
     this.code = code;
@@ -76,28 +74,13 @@ export class ErrorObject extends Error {
     this.message = message;
     this.details = details;
     this.domain = domain;
-
-    // Add logging information
     this.tag = tag;
     this.raw = raw;
 
-    // If you pass another ErrorObject or Error, these may also be useful
-    this.name =
-      this.raw &&
-      typeof this.raw === "object" &&
-      "name" in this.raw &&
-      typeof this.raw.name === "string" &&
-      this.raw.name.length > 0
-        ? this.raw.name
-        : this.code;
-    this.stack =
-      this.raw &&
-      typeof this.raw === "object" &&
-      "stack" in this.raw &&
-      typeof this.raw.stack === "string" &&
-      this.raw.stack.length > 0
-        ? this.raw.stack
-        : undefined;
+    // If you pass another ErrorObject or Error as raw, preserve its name and stack
+    const rawObj = typeof raw === "object" && raw !== null ? raw : undefined;
+    this.name = hasNonEmptyString(rawObj, "name") ? rawObj.name : this.code;
+    this.stack = hasNonEmptyString(rawObj, "stack") ? rawObj.stack : undefined;
 
     // Enable `instanceof` checks
     Object.setPrototypeOf(this, new.target.prototype);
@@ -118,10 +101,17 @@ export class ErrorObject extends Error {
   }
 
   /**
-   * The {@link ErrorObject.new()} method allows users to create a new error object from an existing one, useful when you want to just change the error message.
+   * Creates a new ErrorObject with the same properties as this one.
+   */
+  clone() {
+    return new ErrorObject(this);
+  }
+
+  /**
+   * @deprecated Use {@link ErrorObject.clone()} instead.
    */
   new() {
-    return new ErrorObject(this);
+    return this.clone();
   }
 
   // Setters
@@ -156,53 +146,54 @@ export class ErrorObject extends Error {
     return this;
   }
 
-  setRaw(value?: any | ((old?: any) => any | undefined)) {
+  setRaw(value?: any | ((old?: any) => any)) {
     this.raw = typeof value === "function" ? value(this.raw) : value;
     return this;
   }
 
   // Logging helpers
   toString() {
-    // Create a clean user facing description for error; you might even use it directly in your UI...
-    let extraDomainAndCode = "";
-    let extraDomain = this.domain && this.domain?.length > 0 ? this.domain : "";
-    let extraCode =
+    const showDomain = ErrorObject.INCLUDE_DOMAIN_IN_STRING && !!this.domain;
+    const showCode =
+      ErrorObject.INCLUDE_CODE_IN_STRING &&
       this.code.length > 0 &&
-      (this.domain
-        ? this.domain?.length > 0 && !this.domain.includes(this.code)
-        : true)
-        ? this.code
-        : "";
-    if (extraCode?.length > 0 || extraDomain?.length > 0) {
-      extraDomainAndCode = `[${extraDomain}${
-        extraDomain?.length > 0 && extraCode?.length > 0 ? "/" : ""
-      }${extraCode}]`;
-    }
-    return `${this.message}${
-      extraDomainAndCode?.length > 0 ? " " : ""
-    }${extraDomainAndCode}`;
+      (!showDomain || this.domain !== this.code);
+
+    if (!showDomain && !showCode) return this.message;
+
+    const suffix = showDomain && showCode
+      ? `${this.domain}/${this.code}`
+      : showDomain
+        ? this.domain
+        : this.code;
+
+    return `${this.message} [${suffix}]`;
   }
 
   toDebugString() {
-    return (
-      this.toString() +
-      `\n${JSON.stringify(
-        {
-          code: this.code,
-          numberCode: this.numberCode,
-          message: this.message,
-          details: this.details,
-          domain: this.domain,
-          tag: this.tag,
-        },
-        null,
-        2,
-      )}`
+    const json = JSON.stringify(
+      this,
+      (key, value) => {
+        if (typeof value === "function") return undefined;
+        if (key === "__isErrorObjectTypeDiscriminator") return undefined;
+        return value;
+      },
+      2,
     );
+    return `${this.toString()}\n[DEBUG] ${json}`;
   }
 
-  toVerboseString() {
-    return this.toDebugString() + `\n${JSON.stringify(this.raw, null, 2)}`;
+  toJSON() {
+    const obj: Record<string, unknown> = {
+      code: this.code,
+      message: this.message,
+    };
+    if (this.numberCode !== undefined) obj.numberCode = this.numberCode;
+    if (this.details !== undefined) obj.details = this.details;
+    if (this.domain !== undefined) obj.domain = this.domain;
+    if (this.tag !== undefined) obj.tag = this.tag;
+    if (this.raw !== undefined) obj.raw = this.raw;
+    return obj;
   }
 
   // Log methods
@@ -214,20 +205,11 @@ export class ErrorObject extends Error {
     return this._log(logTag, "debug");
   }
 
-  verboseLog(logTag: string) {
-    return this._log(logTag, "verbose");
-  }
-
-  protected _log(logTag: string, logLevel: "log" | "debug" | "verbose") {
+  protected _log(logTag: string, logLevel: "log" | "debug") {
+    if (!ErrorObject.LOG_METHOD) return this;
     const logForThis =
-      logLevel === "verbose"
-        ? this.toVerboseString()
-        : logLevel === "debug"
-          ? this.toDebugString()
-          : this.toString();
-    ErrorObject.LOG_METHOD &&
-      typeof ErrorObject.LOG_METHOD === "function" &&
-      ErrorObject.LOG_METHOD(`[${logTag}]`, logForThis);
+      logLevel === "debug" ? this.toDebugString() : this.toString();
+    ErrorObject.LOG_METHOD(`[${logTag}]`, logForThis);
     return this;
   }
 
@@ -255,4 +237,16 @@ export class ErrorObject extends Error {
  */
 export function isErrorObject(object: any): object is ErrorObject {
   return ErrorObject.is(object);
+}
+
+function hasNonEmptyString<K extends string>(
+  obj: object | undefined,
+  key: K,
+): obj is Record<K, string> {
+  return (
+    obj !== undefined &&
+    key in obj &&
+    typeof (obj as any)[key] === "string" &&
+    (obj as any)[key].length > 0
+  );
 }
