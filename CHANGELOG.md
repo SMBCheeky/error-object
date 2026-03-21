@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0
+
+### Added
+
+- `ResultObject<T>` class for wrapping success values or errors in a single type-safe container
+  - `ResultObject.ok(data)` — create a success result
+  - `ResultObject.err(error)` — create an error result
+  - `.isOk()`, `.isErr()` — type-narrowing guards
+  - `.hasData()`, `.isData()` — aliases for `.isOk()`
+  - `.isError()` — alias for `.isErr()`
+- Unit test suite with Vitest (67 tests, ~99% coverage)
+
 ## 1.2.1
 
 ### Breaking Changes
