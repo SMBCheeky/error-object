@@ -239,6 +239,53 @@ export function isErrorObject(object: any): object is ErrorObject {
   return ErrorObject.is(object);
 }
 
+/**
+ * A {@link ResultObject} wraps either a success value or an {@link ErrorObject}.
+ *
+ *     const result = ResultObject.ok({ name: "Alice" });
+ *     if (result.isOk()) result.data; // { name: "Alice" }
+ *
+ *     const error = ResultObject.err(ErrorObject.generic());
+ *     if (error.isErr()) error.error; // ErrorObject
+ */
+export class ResultObject<T> {
+  readonly data?: T;
+  readonly error?: ErrorObject;
+
+  private constructor(data?: T, error?: ErrorObject) {
+    this.data = data;
+    this.error = error;
+  }
+
+  static ok<T>(data: T): ResultObject<T> {
+    return new ResultObject(data, undefined);
+  }
+
+  static err<T = never>(error: ErrorObject): ResultObject<T> {
+    return new ResultObject<T>(undefined, error);
+  }
+
+  isOk(): this is ResultObject<T> & { data: T; error: undefined } {
+    return this.error === undefined;
+  }
+
+  hasData(): this is ResultObject<T> & { data: T; error: undefined } {
+    return this.isOk();
+  }
+
+  isData(): this is ResultObject<T> & { data: T; error: undefined } {
+    return this.isOk();
+  }
+
+  isErr(): this is ResultObject<T> & { data: undefined; error: ErrorObject } {
+    return this.error !== undefined;
+  }
+
+  isError(): this is ResultObject<T> & { data: undefined; error: ErrorObject } {
+    return this.isErr();
+  }
+}
+
 function hasNonEmptyString<K extends string>(
   obj: object | undefined,
   key: K,

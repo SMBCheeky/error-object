@@ -35,7 +35,7 @@ while adding structure and ergonomics:
 ## Quick Start
 
 ```typescript
-import { ErrorObject, isErrorObject, ErrorObjectParams } from "@smbcheeky/error-object";
+import { ErrorObject, isErrorObject, ResultObject, ErrorObjectParams } from "@smbcheeky/error-object";
 
 // Create an error
 const error = new ErrorObject({
@@ -216,6 +216,41 @@ err instanceof ApiError;     // true
 err instanceof ErrorObject;  // true
 err instanceof Error;        // true
 ```
+
+## ResultObject
+
+`ResultObject<T>` wraps either a success value or an `ErrorObject`, giving you a type-safe way to return errors instead of throwing them:
+
+```typescript
+import { ResultObject, ErrorObject } from "@smbcheeky/error-object";
+
+function getUser(id: string): ResultObject<User> {
+  if (!id) return ResultObject.err(new ErrorObject({ code: "invalid-id", message: "Missing ID" }));
+  return ResultObject.ok({ name: "Alice" });
+}
+
+const result = getUser("123");
+
+if (result.isOk()) {
+  result.data;  // User — TypeScript narrows the type
+}
+
+if (result.isErr()) {
+  result.error; // ErrorObject
+}
+```
+
+### Guards
+
+All guards narrow the type correctly in TypeScript:
+
+| Method       | Narrows to                               |
+|--------------|------------------------------------------|
+| `.isOk()`    | `{ data: T; error: undefined }`          |
+| `.hasData()` | same as `.isOk()`                        |
+| `.isData()`  | same as `.isOk()`                        |
+| `.isErr()`   | `{ data: undefined; error: ErrorObject }` |
+| `.isError()` | same as `.isErr()`                       |
 
 ## Parsing Errors from Any Payload
 
